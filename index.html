@@ -1,15 +1,744 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>llm.cpp — LMGNU</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+    <meta name="description"
+        content="Fast LLM inference. Local, private, yours. Native C++ and PyTorch inference engine by LMGNU." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0a0a0f;
+            --bg2: #111118;
+            --border: rgba(255, 255, 255, 0.08);
+            --muted: #3a3a4a;
+            --muted-fg: #8888a0;
+            --white: #f2f2f5;
+            --blue: #1E73FF;
+            --green: #4ade80;
+            --mono: 'JetBrains Mono', monospace;
+            --sans: 'Inter', sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--white);
+            font-family: var(--sans);
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            font-family: var(--mono);
+            font-weight: 800;
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        .logo .prefix {
+            color: var(--muted-fg);
+        }
+
+        .logo .cpp {
+            color: var(--blue);
+        }
+
+        .nav-by {
+            font-size: 0.8rem;
+            color: var(--muted-fg);
+            border-left: 1px solid var(--border);
+            padding-left: 12px;
+            margin-left: 4px;
+        }
+
+        .btn-github {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--white);
+            color: #0a0a0f;
+            font-family: var(--sans);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.15s;
+        }
+
+        .btn-github:hover {
+            opacity: 0.85;
+        }
+
+        .btn-github svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .hero {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 80px 24px 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 80% 50% at 50% 40%, rgba(30, 115, 255, 0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-logo {
+            font-family: var(--mono);
+            font-weight: 800;
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            letter-spacing: -0.03em;
+            margin-bottom: 32px;
+        }
+
+        .hero-logo .prefix {
+            color: var(--muted-fg);
+        }
+
+        .hero-logo .cpp {
+            color: var(--blue);
+        }
+
+        .hero h1 {
+            font-size: clamp(1.75rem, 5vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.03em;
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.2rem);
+            color: var(--muted-fg);
+            max-width: 560px;
+            line-height: 1.7;
+            margin-bottom: 40px;
+        }
+
+        .clone-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 10px 10px 18px;
+            width: 100%;
+            max-width: 580px;
+            margin-bottom: 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .clone-box code {
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            color: #c9c9dd;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .copy-btn {
+            flex-shrink: 0;
+            margin-left: 12px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted-fg);
+            cursor: pointer;
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--sans);
+            font-size: 0.78rem;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .copy-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--white);
+        }
+
+        .copy-btn.copied {
+            color: var(--green);
+            border-color: var(--green);
+        }
+
+        .copy-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .hero-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .hero-links a {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--white);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .hero-links a:hover {
+            color: var(--blue);
+        }
+
+        .hero-links a.dim {
+            color: var(--muted-fg);
+        }
+
+        .hero-links a.dim:hover {
+            color: var(--white);
+        }
+
+        section {
+            padding: 96px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        section h2 {
+            font-size: clamp(1.6rem, 4vw, 2.5rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .section-sub {
+            text-align: center;
+            color: var(--muted-fg);
+            font-size: 1.05rem;
+            margin-bottom: 48px;
+        }
+
+        .tabs {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+        }
+
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 16px 24px;
+            font-family: var(--sans);
+            font-size: 0.88rem;
+            font-weight: 500;
+            background: none;
+            border: none;
+            color: var(--muted-fg);
+            cursor: pointer;
+            position: relative;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .tab-btn:hover {
+            color: var(--white);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--blue);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--blue);
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .code-wrap {
+            position: relative;
+            background: #08080d;
+            padding: 28px 24px;
+            overflow-x: auto;
+        }
+
+        .code-copy {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+        }
+
+        pre {
+            font-family: var(--mono);
+            font-size: 0.84rem;
+            line-height: 1.9;
+            color: #c9c9dd;
+            white-space: pre;
+        }
+
+        .cm {
+            color: var(--muted-fg);
+        }
+
+        .kw {
+            color: #60a5fa;
+        }
+
+        .st {
+            color: var(--green);
+        }
+
+        .fl {
+            color: var(--blue);
+        }
+
+        .hw-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 16px;
+        }
+
+        .hw-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .hw-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .hw-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .hw-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .hw-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--white);
+        }
+
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 32px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            max-width: 100%;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .footer-logo {
+            font-family: var(--mono);
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: var(--white);
+        }
+
+        .footer-logo .prefix {
+            color: var(--muted-fg);
+        }
+
+        .footer-logo .cpp {
+            color: var(--blue);
+        }
+
+        .footer-by {
+            font-size: 0.8rem;
+            color: var(--muted-fg);
+            border-left: 1px solid var(--border);
+            padding-left: 12px;
+        }
+
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .footer-right a {
+            font-size: 0.85rem;
+            color: var(--muted-fg);
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        .footer-right a:hover {
+            color: var(--white);
+        }
+
+        .footer-right span {
+            font-size: 0.85rem;
+            color: var(--muted-fg);
+        }
+
+        @media (max-width: 600px) {
+            .nav-by {
+                display: none;
+            }
+
+            footer {
+                justify-content: center;
+                text-align: center;
+            }
+
+            .footer-right {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-left">
+            <a href="#" class="logo" onclick="window.scrollTo(0,0);return false;">
+                <span class="prefix">//++ </span>llm<span class="cpp">.cpp</span>
+            </a>
+            <span class="nav-by">by LMGNU</span>
+        </div>
+        <a class="btn-github" href="https://github.com/LMGNU/llm.cpp" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path
+                    d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z" />
+            </svg>
+            Star on GitHub
+        </a>
+    </nav>
+
+    <div class="hero">
+        <div class="hero-logo">
+            <span class="prefix">//++ </span>llm<span class="cpp">.cpp</span>
+        </div>
+        <h1>Fast LLM inference.<br>Local, private, yours.</h1>
+        <p>Native C++ and PyTorch inference. No cloud. No API keys. Run frontier models on your own hardware.</p>
+
+        <div class="clone-box">
+            <code>git clone https://github.com/LMGNU/llm.cpp</code>
+            <button class="copy-btn" onclick="copyText('git clone https://github.com/LMGNU/llm.cpp', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+                Copy
+            </button>
+        </div>
+
+        <div class="hero-links">
+            <a href="https://github.com/LMGNU/llm.cpp" target="_blank" rel="noopener">View on GitHub →</a>
+            <a href="https://github.com/LMGNU/llm.cpp#readme" target="_blank" rel="noopener" class="dim">Read the docs
+                →</a>
+        </div>
+    </div>
+
+    <section id="quickstart">
+        <h2>Get running in minutes.</h2>
+        <p class="section-sub">Choose your preferred environment to get started.</p>
+
+        <div class="tabs">
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('python', this)">Python / PyTorch</button>
+                <button class="tab-btn" onclick="switchTab('cpp', this)">C++ Native</button>
+            </div>
+
+            <div class="tab-panel active" id="tab-python">
+                <div class="code-wrap">
+                    <div class="code-copy">
+                        <button class="copy-btn" onclick="copyCode('code-python', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre
+                        id="code-python"><span class="cm"># 1. Create a virtual environment</span>
+<span class="kw">python</span> -m venv .venv
+.venv/Scripts/python.exe -m pip install --upgrade pip
+
+<span class="cm"># 2. Install dependencies</span>
+<span class="kw">cd</span> backend
+../.venv/Scripts/python.exe -m pip install -r requirements.txt
+
+<span class="cm"># 3. Interactive chat (PyTorch inference)</span>
+<span class="kw">python</span> engine/inference.py <span class="fl">--checkpoint</span> <span class="st">"engine/best_model.pt"</span>
+
+<span class="cm"># 4. Single generation</span>
+<span class="kw">python</span> engine/inference.py <span class="fl">--checkpoint</span> <span class="st">"engine/best_model.pt"</span> <span class="fl">--prompt</span> <span class="st">"Hello"</span> <span class="fl">--max-new-tokens</span> 100 <span class="fl">--temperature</span> 1.0</pre>
+                </div>
+            </div>
+
+            <div class="tab-panel" id="tab-cpp">
+                <div class="code-wrap">
+                    <div class="code-copy">
+                        <button class="copy-btn" onclick="copyCode('code-cpp', this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                    <pre id="code-cpp"><span class="cm"># 1. Build</span>
+<span class="kw">g++</span> -std=c++17 -O2 -I. -Iinclude -o llm.exe main.cpp
+
+<span class="cm"># 2. Train from scratch</span>
+<span class="kw">./llm.exe</span> data/input.txt
+
+<span class="cm"># 3. Chat mode</span>
+<span class="kw">./llm.exe</span> data/input.txt <span class="fl">--chat</span>
+
+<span class="cm"># 4. Generation mode</span>
+<span class="kw">./llm.exe</span> data/input.txt <span class="fl">--generate</span></pre>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="hardware" style="background: var(--bg2); max-width:100%; padding: 96px 24px;">
+        <div style="max-width:1100px; margin: 0 auto;">
+            <h2>Runs on your hardware.</h2>
+            <p class="section-sub">Optimized for every major platform — from laptops to data centers.</p>
+            <div class="hw-grid">
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#a3a3a3;">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">Apple Silicon</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#76b900;">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">NVIDIA RTX</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#76b900;">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">NVIDIA H100 / A100</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#0071c5;">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M0 0h24v24H0z" fill="none" />
+                            <path
+                                d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">Intel iGPU</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#ed1c24;">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path
+                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">AMD GPU</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#888;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                            <rect x="9" y="9" width="6" height="6" />
+                            <line x1="9" y1="1" x2="9" y2="4" />
+                            <line x1="15" y1="1" x2="15" y2="4" />
+                            <line x1="9" y1="20" x2="9" y2="23" />
+                            <line x1="15" y1="20" x2="15" y2="23" />
+                            <line x1="20" y1="9" x2="23" y2="9" />
+                            <line x1="20" y1="14" x2="23" y2="14" />
+                            <line x1="1" y1="9" x2="4" y2="9" />
+                            <line x1="1" y1="14" x2="4" y2="14" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">CPU x86-64</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#888;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="4" y="4" width="16" height="16" rx="2" />
+                            <rect x="9" y="9" width="6" height="6" />
+                            <line x1="9" y1="1" x2="9" y2="4" />
+                            <line x1="15" y1="1" x2="15" y2="4" />
+                            <line x1="9" y1="20" x2="9" y2="23" />
+                            <line x1="15" y1="20" x2="15" y2="23" />
+                            <line x1="20" y1="9" x2="23" y2="9" />
+                            <line x1="20" y1="14" x2="23" y2="14" />
+                            <line x1="1" y1="9" x2="4" y2="9" />
+                            <line x1="1" y1="14" x2="4" y2="14" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">CPU ARM</span>
+                </div>
+
+                <div class="hw-card">
+                    <div class="hw-icon" style="color:#76b900;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" />
+                            <line x1="8" y1="21" x2="16" y2="21" />
+                            <line x1="12" y1="17" x2="12" y2="21" />
+                        </svg>
+                    </div>
+                    <span class="hw-name">NVIDIA T4</span>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-left">
+            <span class="footer-logo"><span class="prefix">//++ </span>llm<span class="cpp">.cpp</span></span>
+            <span class="footer-by">by LMGNU</span>
+        </div>
+        <div class="footer-right">
+            <a href="https://github.com/LMGNU/llm.cpp" target="_blank" rel="noopener">GitHub</a>
+            <span>GPL 3.0 License</span>
+        </div>
+    </footer>
+
+    <script>
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.innerHTML;
+                btn.classList.add('copied');
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+                setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+            });
+        }
+
+        function copyCode(preId, btn) {
+            const text = document.getElementById(preId).innerText;
+            copyText(text, btn);
+        }
+    </script>
+
+</body>
+
 </html>
